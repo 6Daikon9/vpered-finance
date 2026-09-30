@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const keys = new Set(['vpered.budget.v1', 'vpered.language', 'vpered.backup.before-v2']);
+const keys = new Set(['vpered.budget.v1', 'vpered.language', 'vpered.theme', 'vpered.backup.before-v2']);
 let data = {}, queue = Promise.resolve();
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
@@ -30,7 +30,7 @@ else {
     });
     session.defaultSession.setPermissionRequestHandler((_, __, callback) => callback(false));
     session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] }, (_, callback) => callback({ cancel: true }));
-    const window = new BrowserWindow({ width: 1360, height: 930, minWidth: 390, minHeight: 650, backgroundColor: '#f5f7f9', icon: path.join(__dirname, '../public/app-icon.png'), autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true } });
+    const window = new BrowserWindow({ width: 1360, height: 930, minWidth: 390, minHeight: 650, backgroundColor: data['vpered.theme'] === 'dark' ? '#101820' : '#f5f7f9', icon: path.join(__dirname, '../public/app-icon.png'), autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true } });
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     const entry = pathToFileURL(path.join(__dirname, '../dist/index.html')).href;
     window.webContents.on('will-navigate', (event, url) => { if (url.split('#')[0] !== entry) event.preventDefault(); });

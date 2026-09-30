@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Download, FileUp, FolderOpen, Landmark, Laptop, LayoutDashboard, Pencil, Plus, ShieldCheck, Sparkles, Trash2, Wallet, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Download, FileUp, FolderOpen, Landmark, Laptop, Moon, Sun, LayoutDashboard, Pencil, Plus, ShieldCheck, Sparkles, Trash2, Wallet, X } from 'lucide-react';
 import { active, addMonths, amountAt, changeAmount, currentMonth, demoBudget, emptyBudget, forecast, parseMoney, STORAGE_KEY, validMonth, validateBudget, CURRENCIES, newId, type Transfer, type Account, type Currency, type Budget, type Entry, type Kind, type Month } from './model';
 import { useI18n } from './i18n';
 import { storage, exportBudget } from './storage';
+import { useTheme } from './theme';
 function load() {
     try {
         const raw = storage.getItem(STORAGE_KEY);
@@ -98,7 +99,7 @@ function Chart({ months, selected, currency, onSelect }: {
     const points = months.map((m, i) => `${x(i)},${y(m.closing)}`).join(' ');
     return <div className="chart-wrap"><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t("Прогноз остатка на конец каждого месяца. Точные суммы приведены в таблице ниже.")}>
     <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#76ba94" stopOpacity=".2"/><stop offset="100%" stopColor="#76ba94" stopOpacity=".015"/></linearGradient></defs>
-    {[0, 0.5, 1].map(t => { const v = min + range * t; return <g key={t}><line x1={left} x2={width - right} y1={y(v)} y2={y(v)} stroke="#e8edf0" strokeDasharray="4 5"/><text x={left - 12} y={y(v) + 4} textAnchor="end" className="chart-label">{money(Math.round(v / 10000) * 10000)}</text></g>; })}
+    {[0, 0.5, 1].map(t => { const v = min + range * t; return <g key={t}><line x1={left} x2={width - right} y1={y(v)} y2={y(v)} stroke="var(--line)" strokeDasharray="4 5"/><text x={left - 12} y={y(v) + 4} textAnchor="end" className="chart-label">{money(Math.round(v / 10000) * 10000)}</text></g>; })}
     {min < 0 && <line x1={left} x2={width - right} y1={y(0)} y2={y(0)} stroke="#c96655" strokeDasharray="4 5"/>}
     <polygon points={`${x(0)},${y(min)} ${points} ${x(months.length - 1)},${y(min)}`} fill="url(#area)"/>
     <polyline points={points} fill="none" stroke="#34765f" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"/>
@@ -107,6 +108,7 @@ function Chart({ months, selected, currency, onSelect }: {
 }
 export default function App() {
     const { t, language, setLanguage, money, monthName } = useI18n();
+    const { theme, toggleTheme, themeError } = useTheme();
     const [initial] = useState(load);
     const [budget, setBudget] = useState(initial.budget);
     const [accountId, setAccountId] = useState(initial.budget.accounts[0].id);
@@ -225,7 +227,7 @@ export default function App() {
         catch { /* Optional browser capability. */ }
         return () => lifecycle.abort();
     }, [budget, horizon, account.id, currency]);
-    const categories = [...new Set([t("Работа"), t("Подработка"), t("Жильё"), t("Продукты"), t("Транспорт"), t("Подписки"), t("Покупки"), t("Здоровье"), t("Отдых"), ...budget.entries.map(e => e.category)])];
+    const categories = (kind: Kind) => [...new Set([...(kind === "income" ? [t("Работа"), t("Подработка")] : [t("Жильё"), t("Продукты"), t("Транспорт"), t("Подписки"), t("Покупки"), t("Здоровье"), t("Отдых")]), ...budget.entries.filter(e => e.kind === kind).map(e => e.category)])];
     const list = (kind: Kind) => {
         const entries = accountEntries.filter(e => e.kind === kind);
         return <section className={`panel entries ${kind}`}><div className="section-title"><h2><span className={`section-icon ${kind}`}>{kind === 'income' ? <ArrowDownLeft size={19}/> : <ArrowUpRight size={19}/>}</span>{kind === 'income' ? t("Доходы") : t("Расходы")}<span className="count">{entries.length}</span></h2><button className="small-add" onClick={() => setEditor({ kind })}><Plus size={16}/>{t("Добавить")}</button></div>
@@ -236,8 +238,9 @@ export default function App() {
     };
     return <div className="app-shell">
     <aside className="sidebar"><a className="brand" href="#top"><span className="brand-mark"><BarChart3 size={24}/></span>{t("вперёд")}<span className="brand-dot">.</span></a><div className="sidebar-label">{t("ЛИЧНЫЙ БЮДЖЕТ")}</div><nav><a className="nav-active" href="#top"><LayoutDashboard size={19}/>{t("Калькулятор")}</a><a href="#entries"><Wallet size={19}/>{t("Доходы и расходы")}</a><a href="#forecast"><CalendarDays size={19}/>{t("Прогноз по месяцам")}</a></nav><div className="sidebar-bottom"><div className="local-note"><ShieldCheck size={21}/><div><strong>{t("На устройстве")}</strong><p>{t("Ваши данные остаются")}<br />{t("В этом приложении.")}</p></div></div><button className="sidebar-action" onClick={download}><Download size={18}/>{t("Сохранить файл")}</button><button className="sidebar-action" onClick={() => importRef.current?.click()}><FolderOpen size={18}/>{t("Загрузить файл")}</button><span className="sidebar-foot">{t("Вперёд · Калькулятор бюджета")}</span></div></aside>
-    <main id="top"><header className="page-header"><div><div className="eyebrow">{t("ПЛАНИРОВАНИЕ ФИНАНСОВ")}</div><h1>{t("Бюджет и прогноз")}</h1><p>{t("Доходы, расходы и деньги, которые останутся.")}</p></div><div className="header-actions"><select className="language-select" aria-label="Language / Язык" value={language} onChange={e => setLanguage(e.target.value as "ru" | "en")}><option value="ru">RU · Русский</option><option value="en">EN · English</option></select><span className="local-badge"><ShieldCheck size={15}/>{saveError ? t("Не сохранено") : t("Локальный расчёт")}</span><button className="icon-button help-button" aria-label={t("Как пользоваться")} onClick={() => setHelp(true)}><CircleHelp size={21}/></button></div></header>
+    <main id="top"><header className="page-header"><div><div className="eyebrow">{t("ПЛАНИРОВАНИЕ ФИНАНСОВ")}</div><h1>{t("Бюджет и прогноз")}</h1><p>{t("Доходы, расходы и деньги, которые останутся.")}</p></div><div className="header-actions"><button type="button" className="icon-button theme-toggle" aria-label={t("Тёмная тема")} aria-pressed={theme === "dark"} title={t(theme === "dark" ? "Светлая тема" : "Тёмная тема")} onClick={toggleTheme}>{theme === "dark" ? <Sun size={20}/> : <Moon size={20}/>}</button><select className="language-select" aria-label="Language / Язык" value={language} onChange={e => setLanguage(e.target.value as "ru" | "en")}><option value="ru">RU · Русский</option><option value="en">EN · English</option></select><span className="local-badge"><ShieldCheck size={15}/>{saveError ? t("Не сохранено") : t("Локальный расчёт")}</span><button className="icon-button help-button" aria-label={t("Как пользоваться")} onClick={() => setHelp(true)}><CircleHelp size={21}/></button></div></header>
       <input type="file" accept=".json,application/json" hidden ref={importRef} onChange={e => void importFile(e.target.files?.[0])}/>
+      {themeError && <div role="alert" className="notice error">{t("Не удалось сохранить тему. Попробуйте переключить её ещё раз.")}</div>}
       {stale && <div role="alert" className="notice warning">{t("Данные изменены в другой вкладке.")} <button className="text-button" onClick={() => location.reload()}>{t("Обновить страницу")}</button></div>}
       {notice && <div role="alert" className="notice warning">{t(notice)}<button className="icon-button" aria-label={t("Скрыть сообщение")} onClick={() => setNotice('')}><X size={17}/></button></div>}
       {saveError && <div role="alert" className="notice error">{t("Не удалось сохранить изменения. Сохраните файл перед закрытием приложения.")} <button className="text-button" onClick={download}>{t("Сохранить файл")}</button></div>}
@@ -264,7 +267,7 @@ export default function App() {
           })}</div>}
       </section>
       <section className="panel forecast-panel" id="forecast"><div className="section-title forecast-title"><div><div className="eyebrow">{t("ВЗГЛЯД ВПЕРЁД")}</div><h2>{t("Как изменится остаток")}</h2></div><div className="segmented" aria-label={t("Период прогноза")}>{[3, 6, 12].map(n => <button key={n} aria-pressed={horizon === n} className={horizon === n ? 'active' : ''} onClick={() => { setHorizon(n); if (selected > addMonths(budget.startMonth, n - 1))
-        setSelected(budget.startMonth); }}>{n} {t("мес.")}</button>)}</div></div><div className="forecast-summary"><div><strong className={last.closing < 0 ? 'negative' : ''}>{money(last.closing)} <small>{currency}</small></strong><span>{t("к концу")} {monthName(last.month)}</span></div><span className="chart-legend"><span />{t("Остаток на конец месяца")}</span></div>
+        setSelected(budget.startMonth); }}>{n} {t("мес.")}</button>)}</div></div><div className="forecast-summary"><div><strong className={current.closing < 0 ? 'negative' : ''}>{money(current.closing)} <small>{currency}</small></strong><span>{t("к концу")} {monthName(current.month)}</span></div><span className="chart-legend"><span />{t("Остаток на конец месяца")}</span></div>
         <Chart currency={currency} months={months} selected={current.month} onSelect={setSelected}/>
         {deficit && <div className="forecast-alert"><CircleHelp size={18}/><span>{t("В месяце «")}{monthName(deficit.month)}{t("» расходы превысят доступные деньги. Не хватает")} <strong>{money(-deficit.closing)} {currency}</strong>.</span></div>}
         {!deficit && accountEntries.some(e => e.kind === 'expense' && e.frequency === 'monthly' && e.end >= budget.startMonth && e.end < last.month) && <div className="forecast-insight"><Sparkles size={17}/><span>{t("В этом периоде заканчиваются регулярные платежи. После последнего месяца они автоматически исключаются из расходов.")}</span></div>}
@@ -284,7 +287,7 @@ export default function App() {
       if (commit({ ...budget, accounts })) { setAccountId(updated.id); setAccountEditor(null); }
     }}/>} 
     {accountToRemove && <Modal title={t('Удалить счёт?')} onClose={() => setAccountToRemove(null)}><div className="confirm-body"><p>{t('Счёт «{0}» и все его статьи ({1}) будут удалены из расчёта.', accountToRemove.name, budget.entries.filter(e => e.accountId === accountToRemove.id).length)}</p><footer className="modal-actions"><button className="button secondary" onClick={() => setAccountToRemove(null)}>{t('Отмена')}</button><button className="button danger" onClick={() => { if (budget.accounts.length > 1 && !budget.transfers.some(tr => tr.fromAccountId === accountToRemove.id || tr.toAccountId === accountToRemove.id) && commit({ ...budget, accounts: budget.accounts.filter(a => a.id !== accountToRemove.id), entries: budget.entries.filter(e => e.accountId !== accountToRemove.id) })) { setAccountToRemove(null); } }}>{t('Удалить')}</button></footer></div></Modal>}
-    {editor && <EntryForm account={account} key={editor.entry?.id ?? editor.kind} entry={editor.entry} kind={editor.kind} month={current.month} categories={categories} onSave={saveEntry} onClose={() => setEditor(null)}/>}
+    {editor && <EntryForm account={account} key={editor.entry?.id ?? editor.kind} entry={editor.entry} kind={editor.kind} month={current.month} categories={categories(editor.kind)} onSave={saveEntry} onClose={() => setEditor(null)}/>}
     {remove && <Modal title={t("Удалить статью?")} onClose={() => setRemove(null)}><div className="confirm-body"><p>«{remove.name}{t("» будет удалена из всех месяцев вместе с изменениями сумм.")}</p><footer className="modal-actions"><button className="button secondary" onClick={() => setRemove(null)}>{t("Отмена")}</button><button className="button danger" onClick={() => { if (commit({ ...budget, entries: budget.entries.filter(e => e.id !== remove.id) }))
         setRemove(null); }}>{t("Удалить")}</button></footer></div></Modal>}
     {pending && <Modal title={pending.title} onClose={() => setPending(null)}><div className="confirm-body"><p>{pending.description}</p><button className="text-button" onClick={download}><Download size={16}/>{t("Сохранить текущий расчёт")}</button><footer className="modal-actions"><button className="button secondary" onClick={() => setPending(null)}>{t("Отмена")}</button><button className="button primary" onClick={() => { setIsDemo(false); replace(pending.budget); }}>{t("Заменить расчёт")}</button></footer></div></Modal>}

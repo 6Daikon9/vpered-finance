@@ -1,6 +1,6 @@
 {
   "name": "vpered-finance",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "test": "vitest run",
     "desktop": "electron .",
     "package:windows": "npm run build && electron-builder --win nsis --x64",
-    "sync:mobile": "npm run build && cap sync"
+    "sync:mobile": "npm run build && cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

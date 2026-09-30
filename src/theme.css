@@ -1,0 +1,36 @@
+.theme-toggle{border:1px solid var(--line);background:#fff;min-width:40px;min-height:40px}
+@media(max-width:680px){.header-actions{flex-wrap:wrap;justify-content:flex-end;max-width:140px;gap:6px}.header-actions .help-button{margin-top:0}}
+:root[data-theme="dark"]{color:#e2eaf1;background:#101820;--ink:#e2eaf1;--muted:#a9b7c5;--green:#7ed6aa;--line:#344554}
+[data-theme="dark"] :is(.sidebar,.panel,.metric,.setup-panel,.accounts-panel,.modal,.mobile-navigation,.help-button,.theme-toggle,.small-add,.secondary,.language-select,.account-tabs button,.month-navigation .icon-button,.mobile-month){background:#192530;color:#e2eaf1;border-color:var(--line)}
+[data-theme="dark"] :is(input,select,.entry-form input,.entry-form select,.setup-panel input){background:#111c26;color:#e2eaf1;border-color:#526575}
+[data-theme="dark"] input::placeholder{color:#99aaba}
+[data-theme="dark"] :is(.metric-label,.metric p,.entry-copy>span,.entry-value small,.list-total,.list-total small,.metric-value small,.forecast-summary strong small,.forecast-summary>div>span,.chart-legend,.eyebrow,.sidebar-label,.sidebar-foot,.sidebar-action,.local-note p,.local-note strong,.setup-panel label,.month-start strong,.empty p,.welcome p,.field-help,.forecast-foot,.page-footer,.page-footer button,.confirm-body>p,.help-content p,.transfer-help,.transfer-empty,.transfer-row span,.entry-account,.entry-account span,.accounts-heading p,.account-actions,.mobile-month small,.mobile-month>strong small,.input-currency>span){color:#acbdcb}
+[data-theme="dark"] :is(.list-total,thead,.count,.setup-icon,.entry-mark,.segmented,.transfer-summary,.welcome){background:#202f3c;color:#bdcbd7;border-color:var(--line)}
+[data-theme="dark"] :is(.entry-row,th,td,.modal-header,.account-actions){border-color:var(--line)}
+[data-theme="dark"] :is(td,tbody th,.closing){color:#d0dce6}
+[data-theme="dark"] :is(.sidebar nav a,.chart-months button,.segmented button,.icon-button){color:#adbfce}
+[data-theme="dark"] :is(.sidebar nav .nav-active,.sidebar nav a:hover,.icon-button:hover:not(:disabled),.small-add:hover,.secondary:hover,.segmented button.active,.chart-months button.selected,.account-tabs button[aria-pressed="true"],.selected-row,.mobile-month.selected-row){background:#294137;color:#b3efce}
+[data-theme="dark"] :is(.local-badge,.demo-note,.exchange-rate,.forecast-insight,.formula){background:#203c32;color:#b0dfc3!important}
+[data-theme="dark"] .text-button{color:#8cdbb5;text-decoration-color:#568e73}
+[data-theme="dark"] .positive{color:var(--green)}
+[data-theme="dark"] .negative{color:#ffa69a!important}
+[data-theme="dark"] .metric-icon{background:#244133;color:#9be4bb}
+[data-theme="dark"] .metric-icon.expense{background:#493b30;color:#efbd91}
+[data-theme="dark"] .section-icon.expense{color:#efbd91}
+[data-theme="dark"] :is(.warning,.error,.forecast-alert){background:#47302d;color:#ffd0b9}
+[data-theme="dark"] .chart-label{fill:#acbdcb}
+[data-theme="dark"] .primary{background:#99dbb5;color:#10251a}
+[data-theme="dark"] .primary:hover{background:#b4ebc9}
+[data-theme="dark"] .brand-mark{background:#284235;color:#bcf49a}
+[data-theme="dark"] .result{background:#203e36;border-color:#426859}
+[data-theme="dark"] .result .metric-value{color:#d0f4d8}
+[data-theme="dark"] .result p{color:#bbd0bd}
+[data-theme="dark"] .negative-result{background:#512d2d;border-color:#85554d}
+[data-theme="dark"] .negative-result .metric-value,[data-theme="dark"] .negative-result p{color:#ffd1c7}
+[data-theme="dark"] .modal::backdrop{background:#0009}
+[data-theme="dark"] :is(.entry-account,.account-tabs button span){background:#263d35;color:#c2e7d1}
+[data-theme="dark"] .modal-actions{background:#192530;border-color:var(--line)}
+[data-theme="dark"] .mobile-navigation a{color:#bdcbd7}
+[data-theme="dark"] .chart-wrap polyline{stroke:#80d8b0}
+[data-theme="dark"] .chart-wrap circle[fill="#34765f"]{fill:#80d8b0}
+.form-columns{grid-template-columns:repeat(2,minmax(0,1fr))}.form-columns label{min-width:0}

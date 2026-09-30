@@ -1,5 +1,7 @@
 export type Language = 'ru' | 'en';
 export const english: Record<string, string> = {
+  'Тёмная тема': 'Dark theme', 'Светлая тема': 'Light theme',
+  'Не удалось сохранить тему. Попробуйте переключить её ещё раз.': 'Could not save the theme. Try switching it again.',
   'Переводы и обмен': 'Transfers & exchange', 'Добавить перевод': 'Add transfer', 'Изменить перевод': 'Edit transfer',
   'Со счёта': 'From account', 'На счёт': 'To account', 'Списано': 'Spent', 'Получено': 'Received',
   'Поменять направление': 'Swap direction', 'Обмен валют': 'Currency exchange', 'Описание перевода': 'Transfer description',

@@ -4,6 +4,7 @@ import App from './App';
 import { LanguageProvider } from './i18n';
 import { initializeStorage } from './storage';
 import './styles.css';
+import './theme.css';
 initializeStorage().then(() => {
   createRoot(document.getElementById('root')!).render(<React.StrictMode><LanguageProvider><App /></LanguageProvider></React.StrictMode>);
 }).catch(() => {
