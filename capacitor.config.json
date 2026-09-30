@@ -1,0 +1,12 @@
+{
+  "appId": "app.vpered.finance",
+  "appName": "Vpered",
+  "webDir": "dist",
+  "loggingBehavior": "none",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false,
+    "backgroundColor": "#f5f7f9"
+  },
+  "ios": { "backgroundColor": "#f5f7f9", "contentInset": "automatic" }
+}
