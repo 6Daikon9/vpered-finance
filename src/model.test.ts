@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { active, addMonths, amountAt, changeAmount, forecast, parseMoney, validateBudget, type Budget, type Entry } from './model';
 const entry = (patch: Partial<Entry> = {}): Entry => ({ id: '1', accountId: 'main', kind: 'expense', name: 'Ноутбук', category: 'Покупки', amount: 30000, frequency: 'monthly', start: '2026-10', end: '', changes: [], overrides: {}, ...patch });
-const budget = (entries: Entry[]): Budget => ({ version: 2, startMonth: '2026-10', accounts: [{ id: 'main', name: 'Main', currency: 'PLN', opening: 800000 }], entries, transfers: [] });
+const budget = (entries: Entry[]): Budget => ({ version: 3, startMonth: '2026-10', accounts: [{ id: 'main', name: 'Main', currency: 'PLN', opening: 800000 }], entries, transfers: [] });
 describe('monthly cash flow', () => {
   it('carries balances and stops installments after the inclusive end month', () => {
     const rows = forecast(budget([entry({ id: 'salary', kind: 'income', amount: 520000 }), entry({ id: 'living', amount: 380000 }), entry({ end: '2026-11' })]), 3);

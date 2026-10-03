@@ -35,7 +35,8 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Notification permission and reboot rescheduling are provided by the local notifications plugin. -->
 
     
 </manifest>

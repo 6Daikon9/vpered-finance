@@ -4,6 +4,7 @@ import { active, addMonths, amountAt, changeAmount, currentMonth, demoBudget, em
 import { useI18n } from './i18n';
 import { storage, exportBudget } from './storage';
 import { useTheme } from './theme';
+import { PaymentPanel } from './PaymentPanel';
 function load() {
     try {
         const raw = storage.getItem(STORAGE_KEY);
@@ -44,6 +45,11 @@ function EntryForm({ entry, kind, month, categories, account, onSave, onClose }:
     const [frequency, setFrequency] = useState<Entry['frequency']>(entry?.frequency ?? 'monthly');
     const [start, setStart] = useState(entry?.start ?? month);
     const [end, setEnd] = useState(entry?.end ?? '');
+    const [dueDay, setDueDay] = useState(entry?.dueDay ? String(entry.dueDay) : '');
+    const [remind, setRemind] = useState(!!entry?.reminder);
+    const [daysBefore, setDaysBefore] = useState(String(entry?.reminder?.daysBefore ?? 1));
+    const [reminderTime, setReminderTime] = useState(entry?.reminder?.time ?? '09:00');
+    const [onDueDate, setOnDueDate] = useState(entry?.reminder?.onDueDate ?? true);
     const [error, setError] = useState('');
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -58,6 +64,9 @@ function EntryForm({ entry, kind, month, categories, account, onSave, onClose }:
             if (!validMonth(start) || (frequency === 'monthly' && end && (!validMonth(end) || end < start)))
                 throw new Error(t("Последний месяц не может быть раньше первого."));
             const result: Entry = { id: entry?.id ?? newId(), accountId: account.id, kind, name: name.trim(), category: category.trim(), amount: cents, frequency, start, end: frequency === 'once' ? '' : end, changes: [], overrides: {} };
+            if (dueDay) result.dueDay = Number(dueDay);
+            if (dueDay && remind && kind === 'expense') result.reminder = { daysBefore: Number(daysBefore), time: reminderTime, onDueDate };
+            if (entry?.settledMonths) result.settledMonths = entry.settledMonths;
             onSave(result);
         }
         catch (e) {
@@ -77,6 +86,16 @@ function EntryForm({ entry, kind, month, categories, account, onSave, onClose }:
       {scope === 'all' && <><label>{t("Повторение")}<select aria-label={t("Повторение")} value={frequency} onChange={e => setFrequency(e.target.value as Entry['frequency'])}><option value="monthly">{t("Каждый месяц")}</option><option value="once">{t("Один раз")}</option></select></label>
         <div className="form-columns"><label>{frequency === 'once' ? t("Месяц") : t("Первый месяц")}<input required type="month" min="2000-01" max="2099-12" value={start} onChange={e => setStart(e.target.value)}/></label>
         {frequency === 'monthly' && <label>{t("Последний месяц")}<input type="month" min={start} max="2100-12" value={end} onChange={e => setEnd(e.target.value)}/><span className="field-help">{t("Необязательно, включительно")}</span></label>}</div></>}
+      {scope === 'all' && <fieldset className="payment-settings"><legend>{t('Дата и напоминание')}</legend>
+        <label>{t('День месяца')}<input aria-label={t('День месяца')} type="number" min="1" max="31" step="1" value={dueDay} onChange={e => setDueDay(e.target.value)} placeholder={t('Без даты')}/></label>
+        <p className="field-help">{t('Необязательно. Если такого числа нет, платёж приходится на последний день месяца.')}</p>
+        {dueDay && kind === 'expense' && <><label className="check-label"><input type="checkbox" checked={remind} onChange={e => setRemind(e.target.checked)}/>{t('Напоминать об оплате')}</label>
+          {remind && <><div className="form-columns"><label>{t('За сколько дней')}<input aria-label={t('За сколько дней')} required type="number" min="0" max="365" step="1" value={daysBefore} onChange={e => setDaysBefore(e.target.value)}/><span className="field-help">{t('0 — в день оплаты; максимум 365.')}</span></label>
+          <label>{t('Время напоминания')}<input aria-label={t('Время напоминания')} required type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value)}/></label></div>
+          <label className="check-label"><input type="checkbox" checked={onDueDate} onChange={e => setOnDueDate(e.target.checked)}/>{t('Также в день оплаты')}</label>
+          <p className="field-help">{t('Время местное. Для уведомлений включите напоминания на Android в разделе платежей.')}</p></>}
+        </>}
+      </fieldset>}
       {entry && scope === 'all' && (entry.changes.length > 0 || Object.keys(entry.overrides).length > 0) && <p className="warning">{t("Изменение для всего срока заменит все индивидуальные суммы этой статьи.")}</p>}
       {scope === 'future' && <p className="field-help">{t("Предыдущие месяцы сохранятся. Последующие изменения суммы будут заменены.")}</p>}
       {error && <p className="error" role="alert">{t(error)}</p>}
@@ -111,6 +130,7 @@ export default function App() {
     const { theme, toggleTheme, themeError } = useTheme();
     const [initial] = useState(load);
     const [budget, setBudget] = useState(initial.budget);
+    const [savedBudget, setSavedBudget] = useState<Budget | null>(initial.error ? null : initial.budget);
     const [accountId, setAccountId] = useState(initial.budget.accounts[0].id);
     const account = budget.accounts.find(a => a.id === accountId) ?? budget.accounts[0];
     const currency = account.currency;
@@ -161,7 +181,8 @@ export default function App() {
         try {
             const previous = storage.getItem(STORAGE_KEY);
             if (previous) { try { if (JSON.parse(previous).version === 1 && !storage.getItem('vpered.backup.before-v2')) void storage.setItem('vpered.backup.before-v2', previous).catch(() => {}); } catch { /* Preserve the existing recovery workflow. */ } }
-            void storage.setItem(STORAGE_KEY, JSON.stringify(next)).then(() => setSaveError(false)).catch(() => setSaveError(true));
+            if (previous) { try { if (JSON.parse(previous).version < 3 && !storage.getItem('vpered.backup.before-v3')) void storage.setItem('vpered.backup.before-v3', previous).catch(() => {}); } catch { /* Keep corrupt-data recovery available. */ } }
+            void storage.setItem(STORAGE_KEY, JSON.stringify(next)).then(() => { setSaveError(false); setSavedBudget(next); }).catch(() => setSaveError(true));
         }
         catch {
             setSaveError(true);
@@ -266,6 +287,7 @@ export default function App() {
             return <div key={tr.id} className="transfer-row"><div><strong>{tr.name}</strong><span>{from.name} → {to.name}</span></div><div className="transfer-amounts"><span>−{money(tr.spent)} {from.currency}</span><span className="positive">+{money(tr.received)} {to.currency}</span></div><div className="row-actions"><button className="icon-button" aria-label={t('Редактировать перевод: {0}', tr.name)} onClick={() => setTransferEditor({ transfer: tr })}><Pencil size={16}/></button><button className="icon-button delete" aria-label={t('Удалить перевод: {0}', tr.name)} onClick={() => setTransferToRemove(tr)}><Trash2 size={16}/></button></div></div>;
           })}</div>}
       </section>
+      <PaymentPanel budget={budget} savedBudget={savedBudget} accountId={account.id} month={current.month} onChange={commit}/>
       <section className="panel forecast-panel" id="forecast"><div className="section-title forecast-title"><div><div className="eyebrow">{t("ВЗГЛЯД ВПЕРЁД")}</div><h2>{t("Как изменится остаток")}</h2></div><div className="segmented" aria-label={t("Период прогноза")}>{[3, 6, 12].map(n => <button key={n} aria-pressed={horizon === n} className={horizon === n ? 'active' : ''} onClick={() => { setHorizon(n); if (selected > addMonths(budget.startMonth, n - 1))
         setSelected(budget.startMonth); }}>{n} {t("мес.")}</button>)}</div></div><div className="forecast-summary"><div><strong className={current.closing < 0 ? 'negative' : ''}>{money(current.closing)} <small>{currency}</small></strong><span>{t("к концу")} {monthName(current.month)}</span></div><span className="chart-legend"><span />{t("Остаток на конец месяца")}</span></div>
         <Chart currency={currency} months={months} selected={current.month} onSelect={setSelected}/>
@@ -291,7 +313,7 @@ export default function App() {
     {remove && <Modal title={t("Удалить статью?")} onClose={() => setRemove(null)}><div className="confirm-body"><p>«{remove.name}{t("» будет удалена из всех месяцев вместе с изменениями сумм.")}</p><footer className="modal-actions"><button className="button secondary" onClick={() => setRemove(null)}>{t("Отмена")}</button><button className="button danger" onClick={() => { if (commit({ ...budget, entries: budget.entries.filter(e => e.id !== remove.id) }))
         setRemove(null); }}>{t("Удалить")}</button></footer></div></Modal>}
     {pending && <Modal title={pending.title} onClose={() => setPending(null)}><div className="confirm-body"><p>{pending.description}</p><button className="text-button" onClick={download}><Download size={16}/>{t("Сохранить текущий расчёт")}</button><footer className="modal-actions"><button className="button secondary" onClick={() => setPending(null)}>{t("Отмена")}</button><button className="button primary" onClick={() => { setIsDemo(false); replace(pending.budget); }}>{t("Заменить расчёт")}</button></footer></div></Modal>}
-    {help && <Modal title={t("Как пользоваться")} onClose={() => setHelp(false)}><div className="help-content"><ol><li>{t("Укажите деньги на начало первого месяца расчёта.")}</li><li>{t("Добавьте доходы и расходы. Для каждой статьи можно вписать свою категорию.")}</li><li>{t("Укажите последний месяц для рассрочки или выберите разовый платёж.")}</li><li>{t("Выбирайте месяц в прогнозе. Через карандаш можно изменить сумму только для него или на будущее.")}</li></ol><p className="formula">{t("На конец = на начало + доходы − расходы + входящие переводы − исходящие переводы")}</p><p>{t("Начальная сумма относится к началу месяца: учитывайте полные доходы и расходы этого месяца. Калькулятор не отслеживает отдельные покупки и даты внутри месяца.")}</p><p>{t("Данные хранятся локально. Для переноса на другое устройство сохраните и загрузите файл. Экспорт не зашифрован. Удаление приложения удаляет его данные.")}</p><button className="button primary" onClick={() => setHelp(false)}><Check size={17}/>{t("Понятно")}</button></div></Modal>}
+    {help && <Modal title={t("Как пользоваться")} onClose={() => setHelp(false)}><div className="help-content"><ol><li>{t("Укажите деньги на начало первого месяца расчёта.")}</li><li>{t("Добавьте доходы и расходы. Для каждой статьи можно вписать свою категорию.")}</li><li>{t("Укажите последний месяц для рассрочки или выберите разовый платёж.")}</li><li>{t("Выбирайте месяц в прогнозе. Через карандаш можно изменить сумму только для него или на будущее.")}</li></ol><p className="formula">{t("На конец = на начало + доходы − расходы + входящие переводы − исходящие переводы")}</p><p>{t("Начальная сумма относится к началу месяца: учитывайте полные доходы и расходы этого месяца. Даты платежей помогают следить за сроками. Прогноз остаётся месячным; отдельные покупки не учитываются автоматически.")}</p><p>{t("Данные хранятся локально. Для переноса на другое устройство сохраните и загрузите файл. Экспорт не зашифрован. Удаление приложения удаляет его данные.")}</p><button className="button primary" onClick={() => setHelp(false)}><Check size={17}/>{t("Понятно")}</button></div></Modal>}
   </div>;
 }
 

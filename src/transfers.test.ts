@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { forecast, validateBudget, type Budget, type Transfer } from './model';
 const transfer: Transfer = { id: 'fx', name: 'Exchange', fromAccountId: 'pln', toAccountId: 'eur', spent: 43000, received: 10000, month: '2026-10' };
-const budget: Budget = { version: 2, startMonth: '2026-10', accounts: [{ id: 'pln', name: 'PLN', currency: 'PLN', opening: 100000 }, { id: 'eur', name: 'EUR', currency: 'EUR', opening: 0 }], entries: [], transfers: [transfer] };
+const budget: Budget = { version: 3, startMonth: '2026-10', accounts: [{ id: 'pln', name: 'PLN', currency: 'PLN', opening: 100000 }, { id: 'eur', name: 'EUR', currency: 'EUR', opening: 0 }], entries: [], transfers: [transfer] };
 it('applies both sides once, in their own currencies, and carries balances forward', () => {
   expect(forecast(budget, 3, 'pln').map(m => m.closing)).toEqual([57000, 57000, 57000]);
   expect(forecast(budget, 3, 'eur').map(m => m.closing)).toEqual([10000, 10000, 10000]);

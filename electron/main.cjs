@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const keys = new Set(['vpered.budget.v1', 'vpered.language', 'vpered.theme', 'vpered.backup.before-v2']);
+const keys = new Set(['vpered.budget.v1', 'vpered.language', 'vpered.theme', 'vpered.reminders.enabled', 'vpered.backup.before-v2', 'vpered.backup.before-v3']);
 let data = {}, queue = Promise.resolve();
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {

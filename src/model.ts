@@ -10,8 +10,11 @@ export type Entry = {
   frequency: 'monthly' | 'once'; start: string; end: string;
   changes: { from: string; amount: number }[];
   overrides: Record<string, number>;
+  dueDay?: number;
+  reminder?: { daysBefore: number; time: string; onDueDate: boolean };
+  settledMonths?: string[];
 };
-export type Budget = { version: 2; startMonth: string; accounts: Account[]; entries: Entry[]; transfers: Transfer[] };
+export type Budget = { version: 3; startMonth: string; accounts: Account[]; entries: Entry[]; transfers: Transfer[] };
 export type Month = { month: string; opening: number; income: number; expense: number; transferredIn: number; transferredOut: number; net: number; closing: number };
 export const STORAGE_KEY = 'vpered.budget.v1';
 const LIMIT = 1_000_000_000;
@@ -39,7 +42,7 @@ export function parseMoney(raw: string, signed = false): number {
   if (!Number.isSafeInteger(cents) || cents > LIMIT) throw new Error('Максимальная сумма — 10 000 000 в валюте счёта.');
   return negative ? -cents : cents;
 }
-export const emptyBudget = (language: Language = 'ru'): Budget => ({ version: 2, startMonth: currentMonth(), accounts: [{ id: 'main', name: translate(language, 'Основной счёт'), currency: 'PLN', opening: 0 }], entries: [], transfers: [] });
+export const emptyBudget = (language: Language = 'ru'): Budget => ({ version: 3, startMonth: currentMonth(), accounts: [{ id: 'main', name: translate(language, 'Основной счёт'), currency: 'PLN', opening: 0 }], entries: [], transfers: [] });
 export function active(entry: Entry, month: string) {
   return month >= entry.start && (!entry.end || month <= entry.end) && (entry.frequency === 'monthly' || month === entry.start);
 }
@@ -87,13 +90,13 @@ export function validateBudget(raw: unknown): Budget {
   const b = raw as Record<string, unknown>;
   const amount = (v: unknown, signed = false): v is number => typeof v === 'number' && Number.isSafeInteger(v) && Math.abs(v) <= LIMIT && (signed || v >= 0);
   const label = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0 && v.length <= 100;
-  if (![1, 2].includes(Number(b.version)) || !validMonth(b.startMonth) || b.startMonth > '2099-12' || !Array.isArray(b.entries) || b.entries.length > 1000) return fail();
+  if (![1, 2, 3].includes(Number(b.version)) || !validMonth(b.startMonth) || b.startMonth > '2099-12' || !Array.isArray(b.entries) || b.entries.length > 1000) return fail();
   const accounts: Account[] = [];
   if (b.version === 1) {
     if (!amount(b.opening, true)) return fail();
     accounts.push({ id: 'main', name: 'Основной счёт', currency: 'PLN', opening: b.opening });
   } else {
-    if (b.version !== 2 || !Array.isArray(b.accounts) || b.accounts.length === 0 || b.accounts.length > 50) return fail();
+    if (![2, 3].includes(b.version as number) || !Array.isArray(b.accounts) || b.accounts.length === 0 || b.accounts.length > 50) return fail();
     for (const rawAccount of b.accounts) {
       if (!rawAccount || typeof rawAccount !== 'object') return fail();
       const a = rawAccount as Record<string, unknown>;
@@ -122,7 +125,22 @@ export function validateBudget(raw: unknown): Budget {
       if (!validMonth(key) || !amount(value)) return fail();
       overrides[key] = value;
     }
-    return { id: e.id, accountId, name: e.name.trim(), category: e.category.trim(), kind: e.kind as Kind, amount: e.amount, frequency: e.frequency as Entry['frequency'], start: e.start, end: e.end as string, changes, overrides };
+    const scheduled: Partial<Entry> = {};
+    if (e.dueDay !== undefined) {
+      if (!Number.isInteger(e.dueDay) || Number(e.dueDay) < 1 || Number(e.dueDay) > 31) return fail();
+      scheduled.dueDay = e.dueDay as number;
+    }
+    if (e.reminder !== undefined) {
+      if (!scheduled.dueDay || e.kind !== 'expense' || !e.reminder || typeof e.reminder !== 'object' || Array.isArray(e.reminder)) return fail();
+      const reminder = e.reminder as Record<string, unknown>;
+      if (!Number.isInteger(reminder.daysBefore) || Number(reminder.daysBefore) < 0 || Number(reminder.daysBefore) > 365 || typeof reminder.time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(reminder.time) || typeof reminder.onDueDate !== 'boolean') return fail();
+      scheduled.reminder = { daysBefore: reminder.daysBefore as number, time: reminder.time, onDueDate: reminder.onDueDate };
+    }
+    if (e.settledMonths !== undefined) {
+      if (!Array.isArray(e.settledMonths) || e.settledMonths.length > 1212 || e.settledMonths.some(m => !validMonth(m)) || new Set(e.settledMonths).size !== e.settledMonths.length) return fail();
+      scheduled.settledMonths = e.settledMonths as string[];
+    }
+    return { ...scheduled, id: e.id, accountId, name: e.name.trim(), category: e.category.trim(), kind: e.kind as Kind, amount: e.amount, frequency: e.frequency as Entry['frequency'], start: e.start, end: e.end as string, changes, overrides };
   });
   const rawTransfers = b.version === 1 ? [] : b.transfers ?? [];
   if (!Array.isArray(rawTransfers) || rawTransfers.length > 1000) return fail();
@@ -137,7 +155,7 @@ export function validateBudget(raw: unknown): Budget {
     transferIds.add(item.id);
     return { id: item.id, name: item.name.trim(), month: item.month, fromAccountId: item.fromAccountId, toAccountId: item.toAccountId, spent: item.spent, received: item.received };
   });
-  return { version: 2, accounts, startMonth: b.startMonth, entries, transfers };
+  return { version: 3, accounts, startMonth: b.startMonth, entries, transfers };
 }
 export function demoBudget(language: Language = 'ru'): Budget {
   const start = currentMonth();

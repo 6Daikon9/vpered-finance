@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { forecast, validateBudget, money, monthName, type Budget, type Entry } from './model';
 import { translate } from './messages';
 const e = (id: string, accountId: string, kind: 'income' | 'expense', amount: number): Entry => ({ id, accountId, kind, amount, name: id, category: 'Custom', frequency: 'monthly', start: '2026-10', end: '', changes: [], overrides: {} });
-const b: Budget = { version: 2, startMonth: '2026-10', accounts: [{ id: 'pln', name: 'Poland', currency: 'PLN', opening: 10000 }, { id: 'usd', name: 'Dollars', currency: 'USD', opening: 50000 }], transfers: [], entries: [e('salary', 'pln', 'income', 20000), e('rent', 'pln', 'expense', 5000), e('freelance', 'usd', 'income', 30000), e('subscription', 'usd', 'expense', 1000)] };
+const b: Budget = { version: 3, startMonth: '2026-10', accounts: [{ id: 'pln', name: 'Poland', currency: 'PLN', opening: 10000 }, { id: 'usd', name: 'Dollars', currency: 'USD', opening: 50000 }], transfers: [], entries: [e('salary', 'pln', 'income', 20000), e('rent', 'pln', 'expense', 5000), e('freelance', 'usd', 'income', 30000), e('subscription', 'usd', 'expense', 1000)] };
 it('keeps balances, incomes and expenses isolated by account and currency', () => {
   expect(forecast(b, 2, 'pln').map(m => m.closing)).toEqual([25000, 40000]);
   expect(forecast(b, 2, 'usd').map(m => m.closing)).toEqual([79000, 108000]);
@@ -10,7 +10,7 @@ it('keeps balances, incomes and expenses isolated by account and currency', () =
 });
 it('migrates version 1 without changing any amounts', () => {
   const migrated = validateBudget({ version: 1, startMonth: '2026-10', opening: 10000, entries: [e('salary', 'old', 'income', 20000)] });
-  expect(migrated.version).toBe(2);
+  expect(migrated.version).toBe(3);
   expect(migrated.accounts).toEqual([{ id: 'main', name: 'Основной счёт', currency: 'PLN', opening: 10000 }]);
   expect(migrated.entries[0].accountId).toBe('main');
   expect(forecast(migrated, 1)[0].closing).toBe(30000);

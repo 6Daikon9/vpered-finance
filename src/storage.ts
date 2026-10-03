@@ -10,7 +10,7 @@ const values = new Map<string, string>();
 let writes = Promise.resolve();
 export async function initializeStorage() {
   if (!native && !desktop) return;
-  for (const key of ['vpered.budget.v1', 'vpered.language', 'vpered.theme', 'vpered.backup.before-v2']) {
+  for (const key of ['vpered.budget.v1', 'vpered.language', 'vpered.theme', 'vpered.reminders.enabled', 'vpered.backup.before-v2', 'vpered.backup.before-v3']) {
     const value = desktop ? await desktop.get(key) : (await Preferences.get({ key })).value;
     if (value !== null) values.set(key, value);
   }
